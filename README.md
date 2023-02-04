@@ -1,2 +1,2 @@
 # youtube-video-popularity-prediction
-Masters project for Neural Networks
+University project for SIAP and Neural Networks.
