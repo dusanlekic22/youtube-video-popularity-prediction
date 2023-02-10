@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+from keras.preprocessing.text import one_hot
+from keras.utils import pad_sequences
 
 
 def import_data():
@@ -13,10 +15,10 @@ def import_data():
                                      replace=False)
 
     data = data.loc[data['video_id'].isin(rand_video_ids)]
-    print(data.shape[0])
     data = data.drop_duplicates(subset='video_id', keep="first")
-    print(data.shape[0])
 
+    data['view_count'] = data['view_count'].where(data['view_count'] > 200000, 1)
+    data['view_count'] = data['view_count'].where(data['view_count'] < 200000, 0)
     return data
 
 
@@ -36,4 +38,3 @@ def split_input_output(train, test):
     y_test = test[['view_count']]
 
     return x_train, y_train, x_test, y_test
-
