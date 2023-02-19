@@ -11,7 +11,7 @@ def import_data():
 
     # subset the data
     rand_video_ids = np.random.choice(data['video_id'].unique(),
-                                     size=int(len(data['video_id'].unique()) * 0.01),
+                                     size=int(len(data['video_id'].unique())*0.001),
                                      replace=False)
 
     data = data.loc[data['video_id'].isin(rand_video_ids)]
@@ -20,6 +20,20 @@ def import_data():
     data['view_count'] = data['view_count'].where(data['view_count'] > 200000, 1)
     data['view_count'] = data['view_count'].where(data['view_count'] < 200000, 0)
     return data
+
+
+def split_tags(df):
+    # split each of the strings into a list
+    df['tags'] = df['tags'].str.split(pat='|')
+
+    # collect all unique tags from those lists
+    tags = set(df['tags'].explode().values)
+
+    # create a new Boolean column for each tag
+    for tag in tags:
+        df[tag] = [tag in df['tags'].loc[i] for i in df.index]
+
+    print(df)
 
 
 def split_data(videos):
@@ -38,3 +52,4 @@ def split_input_output(train, test):
     y_test = test[['view_count']]
 
     return x_train, y_train, x_test, y_test
+

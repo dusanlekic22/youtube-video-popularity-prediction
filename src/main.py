@@ -24,7 +24,7 @@ if __name__ == '__main__':
     title_input = keras.Input(
         shape=(None,), name="title"
     )  # Variable-length sequence of ints
-    body_input = keras.Input(shape=(None,), name="body")  # Variable-length sequence of ints
+    description_input = keras.Input(shape=(None,), name="description")  # Variable-length sequence of ints
     tags_input = keras.Input(
         shape=(num_tags,), name="tags"
     )  # Binary vectors of size `num_tags`
@@ -32,22 +32,22 @@ if __name__ == '__main__':
     # Embed each word in the title into a 64-dimensional vector
     title_features = layers.Embedding(num_words, 64)(title_input)
     # Embed each word in the text into a 64-dimensional vector
-    body_features = layers.Embedding(num_words, 64)(body_input)
+    description_features = layers.Embedding(num_words, 64)(description_input)
 
     # Reduce sequence of embedded words in the title into a single 128-dimensional vector
     title_features = layers.LSTM(128)(title_features)
-    # Reduce sequence of embedded words in the body into a single 32-dimensional vector
-    body_features = layers.LSTM(32)(body_features)
+    # Reduce sequence of embedded words in the description into a single 32-dimensional vector
+    description_features = layers.LSTM(32)(description_features)
 
     # Merge all available features into a single large vector via concatenation
-    x = layers.concatenate([title_features, body_features, tags_input])
+    x = layers.concatenate([title_features, description_features, tags_input])
 
     # Stick a department classifier on top of the features
     popularity_pred = layers.Dense(1, name="view_count")(x)
 
     # Instantiate an end-to-end model predicting both priority and department
     model = keras.Model(
-        inputs=[title_input, body_input, tags_input],
+        inputs=[title_input, description_input, tags_input],
         outputs=[popularity_pred],
     )
 
@@ -58,28 +58,31 @@ if __name__ == '__main__':
             keras.losses.CategoricalCrossentropy(from_logits=True),
         ],
         loss_weights=[1.0, 0.2],
-        metrics=[keras.metrics.SparseCategoricalAccuracy(),"accuracy"],
+        metrics=[keras.metrics.SparseCategoricalAccuracy(), "accuracy"],
     )
 
-    # Dummy input data
-    encoded_titles = [one_hot(d, num_words) for d in x_train['title']]
-    padded_titles = pad_sequences(encoded_titles, maxlen=6, padding='post')
-    encoded_description = [one_hot(d, num_words) for d in x_train['description'].astype(str)]
-    padded_description = pad_sequences(encoded_description, maxlen=6, padding='post')
-    encoded_tags = [one_hot(d, num_words) for d in x_train['tags']]
-    padded_tags = pad_sequences(encoded_tags, maxlen=100, padding='post')
-    title_data = padded_titles
-    body_data = padded_description
-    tags_data = padded_tags
-    # Dummy target data
-    dept_targets = y_train
+    # Embedding the inputs
+    # encoded_titles = [one_hot(d, num_words) for d in x_train['title']]
+    # padded_titles = pad_sequences(encoded_titles, maxlen=6, padding='post')
+    # encoded_description = [one_hot(d, num_words) for d in x_train['description'].astype(str)]
+    # padded_description = pad_sequences(encoded_description, maxlen=6, padding='post')
+    # encoded_tags = [one_hot(d, num_words) for d in x_train['tags']]
+    # padded_tags = pad_sequences(encoded_tags, maxlen=100, padding='post')
+    # title_data = padded_titles
+    # description_data = padded_description
+    # tags_data = padded_tags
+    # # Dummy target data
+    # dept_targets = y_train
+    #
+    # model.fit(
+    #     {"title": title_data, "description": description_data, "tags": tags_data},
+    #     {"view_count": dept_targets},
+    #     epochs=5,
+    #     batch_size=32,
+    # )
+    # model.save('my_model')
 
-    model.fit(
-        {"title": title_data, "body": body_data, "tags": tags_data},
-        {"view_count": dept_targets},
-        epochs=5,
-        batch_size=32,
-    )
+    model = keras.models.load_model("my_model")
 
     encoded_titles = [one_hot(d, num_words) for d in x_test['title']]
     padded_titles = pad_sequences(encoded_titles, maxlen=6, padding='post')
@@ -88,12 +91,17 @@ if __name__ == '__main__':
     encoded_tags = [one_hot(d, num_words) for d in x_test['tags']]
     padded_tags = pad_sequences(encoded_tags, maxlen=100, padding='post')
     title_data = padded_titles
-    body_data = padded_description
+    description_data = padded_description
     tags_data = padded_tags
 
-    test_scores = model.evaluate([title_data, body_data, tags_data], y_test, verbose=2)
-    print("Test loss:", test_scores[0])
-    print("Test accuracy:", test_scores[1])
-    print("Test sparse accuracy:", test_scores[2])
+    # test_scores = model.evaluate([title_data, description_data, tags_data], y_test, verbose=2)
+    # print("Test loss:", test_scores[0])
+    # print("Test accuracy:", test_scores[1])
+    # print("Test sparse accuracy:", test_scores[2])
+
+    prediction = np.round(model.predict([title_data, description_data, tags_data]))
+    print(y_test['view_count'])
+    wrong_predictions = x_test[prediction[:200] != y_test['view_count'][:200].tolist()]
+    print(wrong_predictions)
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
