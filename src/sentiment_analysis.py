@@ -1,4 +1,8 @@
 import pandas as pd
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+import nltk
+nltk.download('vader_lexicon')
+analyzer = SentimentIntensityAnalyzer()
 
 
 def load_data(file_path):
@@ -18,19 +22,32 @@ def get_comment_list(video_id):
     return video_comments
 
 
-#def analyse_sentiment(comments):
+def analyse_sentiment(comment_list):
+
+    neutral_count = 0
+    negative_count = 0
+    positive_count = 0
+
+    for comment in comment_list:
+        scores = analyzer.polarity_scores(comment)
+        compound_score = scores['compound']
+        if compound_score >= 0.05:
+            positive_count = positive_count + 1
+        elif compound_score <= -0.05:
+            negative_count = negative_count + 1
+        else:
+            neutral_count = neutral_count + 1
+
+    return neutral_count, negative_count, positive_count
 
 
 if __name__ == '__main__':
-    print('Printaj sve')
+
     video_ids = load_data('../dataset/US_youtube_trending_data.csv')
 
     for video_id in video_ids:
         print(video_id)
         comments = get_comment_list(video_id)
-
-        for c in comments:
-            print(c)
+        neutral, negative, positive = analyse_sentiment(comments)
+        print(f'Neutralnih {neutral}, negativnih {negative}, pozitivnih {positive}')
         break
-        #nautral, positive, negative = analyse_sentiment(comments)
-        #serijalizuj u file
