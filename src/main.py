@@ -7,9 +7,8 @@ import tensorflow as tf
 from keras.preprocessing.text import one_hot
 from keras.utils import pad_sequences
 from tensorflow import keras
-from tensorflow.keras import layers
+from keras import layers
 from data import *
-
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
@@ -62,17 +61,17 @@ if __name__ == '__main__':
     )
 
     # Embedding the inputs
-    # encoded_titles = [one_hot(d, num_words) for d in x_train['title']]
-    # padded_titles = pad_sequences(encoded_titles, maxlen=6, padding='post')
-    # encoded_description = [one_hot(d, num_words) for d in x_train['description'].astype(str)]
-    # padded_description = pad_sequences(encoded_description, maxlen=6, padding='post')
-    # encoded_tags = [one_hot(d, num_words) for d in x_train['tags']]
-    # padded_tags = pad_sequences(encoded_tags, maxlen=100, padding='post')
-    # title_data = padded_titles
-    # description_data = padded_description
-    # tags_data = padded_tags
-    # # Dummy target data
-    # dept_targets = y_train
+    encoded_titles = [one_hot(d, num_words) for d in x_train['title']]
+    padded_titles = pad_sequences(encoded_titles, maxlen=6, padding='post')
+    encoded_description = [one_hot(d, num_words) for d in x_train['description'].astype(str)]
+    padded_description = pad_sequences(encoded_description, maxlen=6, padding='post')
+    encoded_tags = [one_hot(d, num_words) for d in x_train['tags']]
+    padded_tags = pad_sequences(encoded_tags, maxlen=100, padding='post')
+    title_data = padded_titles
+    description_data = padded_description
+    tags_data = padded_tags
+    # Dummy target data
+    dept_targets = y_train
     #
     # model.fit(
     #     {"title": title_data, "description": description_data, "tags": tags_data},
