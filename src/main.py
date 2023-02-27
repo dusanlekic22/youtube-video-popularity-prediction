@@ -13,7 +13,7 @@ from data import *
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
 
-    train, test = split_data(import_data())
+    train, test = split_data(preprocessing_data(import_data()))
     x_train, y_train, x_test, y_test = split_input_output(train, test)
 
     num_tags = 100  # Number of unique issue tags
