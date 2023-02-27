@@ -57,7 +57,7 @@ if __name__ == '__main__':
             keras.losses.CategoricalCrossentropy(from_logits=True),
         ],
         loss_weights=[1.0, 0.2],
-        metrics=[keras.metrics.SparseCategoricalAccuracy(), "accuracy"],
+        metrics=[keras.metrics.SparseCategoricalAccuracy(), 'AUC'],
     )
 
     # Embedding the inputs
@@ -93,14 +93,14 @@ if __name__ == '__main__':
     description_data = padded_description
     tags_data = padded_tags
 
-    # test_scores = model.evaluate([title_data, description_data, tags_data], y_test, verbose=2)
-    # print("Test loss:", test_scores[0])
-    # print("Test accuracy:", test_scores[1])
-    # print("Test sparse accuracy:", test_scores[2])
+    test_scores = model.evaluate([title_data, description_data, tags_data], y_test, verbose=2)
+    print("Test loss:", test_scores[0])
+    print("Test accuracy:", test_scores[1])
+    print("Test sparse accuracy:", test_scores[2])
 
-    prediction = np.round(model.predict([title_data, description_data, tags_data]))
-    print(y_test['view_count'])
-    wrong_predictions = x_test[prediction[:200] != y_test['view_count'][:200].tolist()]
-    print(wrong_predictions)
+    # prediction = np.round(model.predict([title_data, description_data, tags_data]))
+    # print(y_test['view_count'])
+    # wrong_predictions = x_test[prediction[:200] != y_test['view_count'][:200].tolist()]
+    # print(wrong_predictions)
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/

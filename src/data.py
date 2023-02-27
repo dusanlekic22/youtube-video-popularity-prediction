@@ -12,7 +12,7 @@ def import_data():
 
     # subset the data
     rand_video_ids = np.random.choice(data['video_id'].unique(),
-                                     size=int(len(data['video_id'].unique())*0.1),
+                                     size=int(len(data['video_id'].unique())*1.0),
                                      replace=False)
 
     data = data.loc[data['video_id'].isin(rand_video_ids)]
@@ -31,16 +31,16 @@ def import_data():
     num_data = data.drop('categoryId', axis=1)
     data = pd.concat([num_data, OH_cols_train], axis=1)
     print(data)
-    data['view_count'] = data['view_count'].where(data['view_count'] > 400000, 1)
-    data['view_count'] = data['view_count'].where(data['view_count'] < 400000, 0)
+    data['view_count'] = data['view_count'].where(data['view_count'] > 200000, 1)
+    data['view_count'] = data['view_count'].where(data['view_count'] < 200000, 0)
     return data
 
 
 def eda(df):
     print(df.describe())
-    print(df['view_count'].value_counts())
+    print(df.iloc[:, np.r_[7:11, 15:31]].columns)
     sb.set(font_scale=2)
-    sb.pairplot(df.iloc[:, np.r_[7:12, 16:31]], hue="view_count", diag_kind="hist", aspect=2)
+    sb.pairplot(df.iloc[:, np.r_[7:11, 15:31]], hue="view_count", diag_kind="hist", aspect=2)
     plt.show()
     for column in ['likes', 'dislikes', 'comment_count', 'trending_time', 'view_count']:
         sb.displot(df, x=column, hue="view_count", height=10, aspect=2, multiple="dodge")
@@ -83,3 +83,4 @@ def split_input_output(train, test):
 
     return x_train, y_train, x_test, y_test
 
+#eda(import_data())
