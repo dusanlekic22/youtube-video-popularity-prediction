@@ -25,22 +25,32 @@ def num_there(s):
 
 
 def get_channel_about(channelId, driver, wait):
+    print('get_channel_about', channelId)
     channel_subscribe_count, channel_view_count, channel_join_date = 0, 0, '0'
 
     driver.get(get_url_channel_about(channelId))
 
-    html_subscribe_count = wait.until(EC.presence_of_element_located((By.ID, "subscriber-count")))
-    channel_subscribe_count_text = html_subscribe_count.text
-    if channel_subscribe_count_text != '' and num_there(channel_subscribe_count_text) and channel_subscribe_count_text != 'Subscriber count hidden':
-        channel_subscribe_count_text = channel_subscribe_count_text.replace(' subscribers', '')
-        channel_subscribe_count_text = channel_subscribe_count_text.replace(',', '')
-        channel_subscribe_count_text = channel_subscribe_count_text.replace('M', '*1000000')
-        channel_subscribe_count_text = channel_subscribe_count_text.replace('K', '*1000')
-        channel_subscribe_count = int(eval(channel_subscribe_count_text))
-    else:
-        channel_subscribe_count = -1
+    try:
+        html_subscribe_count = wait.until(EC.presence_of_element_located((By.ID, "subscriber-count")))
+        channel_subscribe_count_text = html_subscribe_count.text
+        if channel_subscribe_count_text != '' and num_there(channel_subscribe_count_text) and channel_subscribe_count_text != 'Subscriber count hidden':
+            channel_subscribe_count_text = channel_subscribe_count_text.replace(' subscribers', '')
+            channel_subscribe_count_text = channel_subscribe_count_text.replace(',', '')
+            channel_subscribe_count_text = channel_subscribe_count_text.replace('M', '*1000000')
+            channel_subscribe_count_text = channel_subscribe_count_text.replace('K', '*1000')
+            channel_subscribe_count = int(eval(channel_subscribe_count_text))
+        else:
+            channel_subscribe_count = -1
+    except:
+        print('=== ERORR PRIVATE CHANNEL')
+        return [channelId, channel_subscribe_count, channel_view_count, channel_join_date, '-1']
 
-    html_view_right_column = wait.until(EC.presence_of_element_located((By.ID, "right-column")))
+    try:
+        html_view_right_column = wait.until(EC.presence_of_element_located((By.ID, "right-column")))
+    except:
+        print('=== ERORR OR NOT FOUND OR DELETED CHANNEL')
+        return [channelId, channel_subscribe_count, channel_view_count, channel_join_date, '0']
+
     channel_about_metadata = html_view_right_column.text.split('\n')
     for metadata in channel_about_metadata:
         if 'Joined' in metadata:
@@ -56,11 +66,12 @@ def get_channel_about(channelId, driver, wait):
 
 def save_to_csv(channel_about):
     df = pd.DataFrame(channel_about, columns=['channelId', 'channel_subscribe_count', 'channel_view_count', 'channel_join_date', 'scraping_time'])
-    df.to_csv('../dataset/US_channel_about.csv', mode='a', header=False, index=False)
+    df.to_csv('../dataset/US_channel_about1.csv', mode='a', header=False, index=False)
 
 
 def main():
     channelIds = load_data('../dataset/US_youtube_trending_data.csv')
+
     driver = webdriver.Chrome(chromedriver_path)
     wait = WebDriverWait(driver, 10)
 
@@ -72,12 +83,13 @@ def main():
         channel_about_list.append(channel_about)
         i += 1
         print(i, channel_about)
-        if i % 100 == 0:
-            print('100x time:', time.time() - start_time)
+        if i % 50 == 0:
+            print('50x time:', time.time() - start_time)
             save_to_csv(channel_about_list)
             channel_about_list = []
-        if i == 100:
-            break
+
+    if len(channel_about_list) > 0:
+        save_to_csv(channel_about_list)
 
     print('time elapsed: ', time.time() - start_time)
     driver.close()
