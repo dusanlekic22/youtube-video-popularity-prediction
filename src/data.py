@@ -28,7 +28,7 @@ def import_data():
 
     # subset the data
     rand_video_ids = np.random.choice(data['video_id'].unique(),
-                                      size=int(len(data['video_id'].unique()) * 0.01),
+                                      size=int(len(data['video_id'].unique()) * 1.0),
                                       replace=False)
 
     data = data.loc[data['video_id'].isin(rand_video_ids)]
@@ -40,6 +40,9 @@ def preprocessing_data(data):
 
     data['trending_time'] = pd.to_datetime(data['trending_date']) - pd.to_datetime(data['publishedAt'])
     data['trending_time'] = data['trending_time'].dt.total_seconds()
+
+    data['channel_subscribe_count'] = data['channel_subscribe_count'].fillna(data['channel_subscribe_count'].median())
+    data['channel_view_count'] = data['channel_view_count'].fillna(data['channel_view_count'].median())
 
     data = category_encoding(data)
 
@@ -54,10 +57,10 @@ def category_encoding(data):
     column_name = oh_encoder.get_feature_names_out(['category'])
     oh_cols_train.columns = column_name
     oh_cols_train.index = data.index
-    print(column_name)
+
     num_data = data.drop('categoryId', axis=1)
     data = pd.concat([num_data, oh_cols_train], axis=1)
-    print(data)
+
     return data
 
 
@@ -93,9 +96,9 @@ def convert_channel_id_to_channel_title(columns, channel_dictionary):
 
 def eda(df):
     print(df.describe())
-    print(df.iloc[:, np.r_[7:11, 15:31]].columns)
+    print(df.iloc[:, np.r_[7:10, 14:30]].columns)
     sb.set(font_scale=2)
-    sb.pairplot(df.iloc[:, np.r_[7:11, 15:31]], hue="view_count", diag_kind="hist", aspect=2)
+    sb.pairplot(df.iloc[:, np.r_[7:10]], hue="view_count", diag_kind="hist", aspect=2)
     plt.show()
     for column in ['likes', 'dislikes', 'comment_count', 'trending_time', 'view_count']:
         sb.displot(df, x=column, hue="view_count", height=10, aspect=2, multiple="dodge")
@@ -120,8 +123,10 @@ def split_data(videos):
     # split the train/test split by the latest rating
 
     scaler = MinMaxScaler()
-    scaled_values = scaler.fit_transform(videos[['likes', 'dislikes', 'comment_count', 'trending_time']])
-    videos[['likes', 'dislikes', 'comment_count', 'trending_time']] = scaled_values
+    scaled_values = scaler.fit_transform(videos[['likes', 'dislikes', 'comment_count', 'trending_time',
+                                                 'channel_subscribe_count', 'channel_view_count']])
+    videos[['likes', 'dislikes', 'comment_count', 'trending_time', 'channel_subscribe_count', 'channel_view_count']] \
+        = scaled_values
 
     train_videos = videos.sample(frac=0.8, random_state=200)
     test_videos = videos.drop(train_videos.index)
@@ -139,5 +144,5 @@ def split_input_output(train, test):
     return x_train, y_train, x_test, y_test
 
 
-preprocessing_data(import_data())
-# eda(import_data())
+# preprocessing_data(import_data())
+# eda(preprocessing_data(import_data()))
