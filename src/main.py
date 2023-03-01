@@ -13,7 +13,7 @@ from data import *
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
 
-    train, test = split_data(import_data())
+    train, test = split_data(preprocessing_data(import_data()))
     x_train, y_train, x_test, y_test = split_input_output(train, test)
 
     num_tags = 100  # Number of unique issue tags
@@ -28,6 +28,9 @@ if __name__ == '__main__':
         shape=(num_tags,), name="tags"
     )  # Binary vectors of size `num_tags`
 
+    # Create keras input for numerical features
+    numerical_input = keras.Input(shape=(x_train.iloc[:, np.r_[7:10, 14:16, 18:33]].shape[1],), name="numerical_input")
+
     # Embed each word in the title into a 64-dimensional vector
     title_features = layers.Embedding(num_words, 64)(title_input)
     # Embed each word in the text into a 64-dimensional vector
@@ -39,14 +42,14 @@ if __name__ == '__main__':
     description_features = layers.LSTM(32)(description_features)
 
     # Merge all available features into a single large vector via concatenation
-    x = layers.concatenate([title_features, description_features, tags_input])
+    x = layers.concatenate([title_features, description_features, numerical_input])
 
     # Stick a department classifier on top of the features
     popularity_pred = layers.Dense(1, name="view_count")(x)
 
     # Instantiate an end-to-end model predicting both priority and department
     model = keras.Model(
-        inputs=[title_input, description_input, tags_input],
+        inputs=[title_input, description_input, numerical_input],
         outputs=[popularity_pred],
     )
 
@@ -57,7 +60,7 @@ if __name__ == '__main__':
             keras.losses.CategoricalCrossentropy(from_logits=True),
         ],
         loss_weights=[1.0, 0.2],
-        metrics=[keras.metrics.SparseCategoricalAccuracy(), "accuracy"],
+        metrics=[keras.metrics.SparseCategoricalAccuracy(), 'AUC', 'accuracy'],
     )
 
     # Embedding the inputs
@@ -70,18 +73,20 @@ if __name__ == '__main__':
     title_data = padded_titles
     description_data = padded_description
     tags_data = padded_tags
+    numerical_data = x_train.iloc[:, np.r_[7:10, 14:16, 18:33]].to_numpy()
     # Dummy target data
     dept_targets = y_train
-    #
-    # model.fit(
-    #     {"title": title_data, "description": description_data, "tags": tags_data},
-    #     {"view_count": dept_targets},
-    #     epochs=5,
-    #     batch_size=32,
-    # )
-    # model.save('my_model')
 
-    model = keras.models.load_model("my_model")
+    model.fit(
+        {"title": title_data, "description": description_data,
+         "numerical_input": np.asarray(numerical_data).astype(np.float32)},
+        {"view_count": dept_targets},
+        epochs=15,
+        batch_size=32,
+    )
+    model.save('my_model')
+
+    #model = keras.models.load_model("my_model")
 
     encoded_titles = [one_hot(d, num_words) for d in x_test['title']]
     padded_titles = pad_sequences(encoded_titles, maxlen=6, padding='post')
@@ -92,15 +97,18 @@ if __name__ == '__main__':
     title_data = padded_titles
     description_data = padded_description
     tags_data = padded_tags
+    numerical_data = x_test.iloc[:, np.r_[7:10, 14:16, 18:33]].to_numpy()
 
-    # test_scores = model.evaluate([title_data, description_data, tags_data], y_test, verbose=2)
-    # print("Test loss:", test_scores[0])
-    # print("Test accuracy:", test_scores[1])
-    # print("Test sparse accuracy:", test_scores[2])
+    test_scores = model.evaluate([title_data, description_data, numerical_data], y_test, verbose=2)
+    print("Test loss:", test_scores[0])
+    print("Test sparse accuracy:", test_scores[1])
+    print("AUC:", test_scores[2])
+    print("Accuracy:", test_scores[3])
 
-    prediction = np.round(model.predict([title_data, description_data, tags_data]))
-    print(y_test['view_count'])
-    wrong_predictions = x_test[prediction[:200] != y_test['view_count'][:200].tolist()]
-    print(wrong_predictions)
+    keras.utils.plot_model(model, "multi_input_and_output_model.png", show_shapes=True)
+    # prediction = np.round(model.predict([title_data, description_data, tags_data]))
+    # print(y_test['view_count'])
+    # wrong_predictions = x_test[prediction[:200] != y_test['view_count'][:200].tolist()]
+    # print(wrong_predictions)
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/

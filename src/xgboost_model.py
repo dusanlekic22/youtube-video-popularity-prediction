@@ -4,14 +4,17 @@ from data import *
 
 if __name__ == '__main__':
 
-    train, test = split_data(import_data())
+    train, test = split_data(preprocessing_data(import_data()))
     x_train, y_train, x_test, y_test = split_input_output(train, test)
+    # Print the value which is in x_train.iloc[:, np.r_[7:10, 18:33]].columns but not in x_train.columns
 
-    dtrain = xgb.DMatrix(x_train[['likes', 'dislikes', 'comment_count', 'trending_time']], label=y_train)
+    #print(x_train.iloc[:, np.r_[7:10, 14:16, 18:33]].columns)
 
-    param = {'max_depth': 2, 'eta': 1, 'objective': 'binary:logistic', 'nthread': 4, 'eval_metric': 'auc'}
+    dtrain = xgb.DMatrix(x_train.iloc[:,  np.r_[7:10, 14:16, 18:33]], label=y_train)
 
-    dtest = xgb.DMatrix(x_test[['likes', 'dislikes', 'comment_count', 'trending_time']], label=y_test)
+    param = {'max_depth': 6, 'eta': 0.3, 'objective': 'binary:logistic', 'nthread': 4, 'eval_metric': ['auc', 'mae', 'rmsle']}
+
+    dtest = xgb.DMatrix(x_test.iloc[:, np.r_[7:10, 14:16, 18:33]], label=y_test)
     evallist = [(dtrain, 'train'), (dtest, 'eval')]
     num_round = 10
     bst = xgb.train(param, dtrain, num_round, evallist)
