@@ -29,7 +29,7 @@ if __name__ == '__main__':
     )  # Binary vectors of size `num_tags`
 
     # Create keras input for numerical features
-    numerical_input = keras.Input(shape=(x_train.iloc[:, np.r_[7:10, 14:16, 18:33]].shape[1],), name="numerical_input")
+    numerical_input = keras.Input(shape=(x_train.iloc[:, np.r_[6:9, 13:15, 17:53]].shape[1],), name="numerical_input")
 
     # Embed each word in the title into a 64-dimensional vector
     title_features = layers.Embedding(num_words, 64)(title_input)
@@ -73,20 +73,20 @@ if __name__ == '__main__':
     title_data = padded_titles
     description_data = padded_description
     tags_data = padded_tags
-    numerical_data = x_train.iloc[:, np.r_[7:10, 14:16, 18:33]].to_numpy()
+    numerical_data = x_train.iloc[:, np.r_[6:9, 13:15, 17:53]].to_numpy()
     # Dummy target data
     dept_targets = y_train
 
-    model.fit(
-        {"title": title_data, "description": description_data,
-         "numerical_input": np.asarray(numerical_data).astype(np.float32)},
-        {"view_count": dept_targets},
-        epochs=15,
-        batch_size=32,
-    )
-    model.save('my_model')
+    # model.fit(
+    #     {"title": title_data, "description": description_data,
+    #      "numerical_input": np.asarray(numerical_data).astype(np.float32)},
+    #     {"view_count": dept_targets},
+    #     epochs=15,
+    #     batch_size=32,
+    # )
+    #model.save('my_model')
 
-    #model = keras.models.load_model("my_model")
+    model = keras.models.load_model("my_model")
 
     encoded_titles = [one_hot(d, num_words) for d in x_test['title']]
     padded_titles = pad_sequences(encoded_titles, maxlen=6, padding='post')
@@ -97,18 +97,17 @@ if __name__ == '__main__':
     title_data = padded_titles
     description_data = padded_description
     tags_data = padded_tags
-    numerical_data = x_test.iloc[:, np.r_[7:10, 14:16, 18:33]].to_numpy()
+    numerical_data = x_test.iloc[:, np.r_[6:9, 13:15, 17:53]].to_numpy()
 
     test_scores = model.evaluate([title_data, description_data, numerical_data], y_test, verbose=2)
     print("Test loss:", test_scores[0])
     print("Test sparse accuracy:", test_scores[1])
     print("AUC:", test_scores[2])
     print("Accuracy:", test_scores[3])
-
-    keras.utils.plot_model(model, "multi_input_and_output_model.png", show_shapes=True)
-    # prediction = np.round(model.predict([title_data, description_data, tags_data]))
-    # print(y_test['view_count'])
-    # wrong_predictions = x_test[prediction[:200] != y_test['view_count'][:200].tolist()]
-    # print(wrong_predictions)
+    #keras.utils.plot_model(model, "multi_input_and_output_model.png", show_shapes=True)
+    prediction = np.round(model.predict([title_data, description_data, numerical_data]))
+    #print(y_test['view_count'].reset_index(drop=True), prediction.flatten())
+    wrong_predictions = x_test[prediction.flatten() != y_test['view_count']]['title']
+    print(wrong_predictions, wrong_predictions.count())
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
