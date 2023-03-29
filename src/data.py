@@ -39,12 +39,14 @@ def import_data():
 def preprocessing_data(data):
     data = data.drop_duplicates(subset='video_id', keep="first")
 
+    data['trending_time'] = pd.to_datetime(data['trending_date']) - pd.to_datetime(data['publishedAt'])
+    data['trending_time'] = data['trending_time'].dt.total_seconds()
+
+    print(data['dislikes'].value_counts())
+
     data = replace_outliers(data, ['likes', 'dislikes', 'comment_count',
                                    'channel_subscribe_count', 'channel_view_count', 'trending_time'])
     data['dislikes'] = data['dislikes'].where(data['dislikes'] != 0, data['dislikes'].median())
-
-    data['trending_time'] = pd.to_datetime(data['trending_date']) - pd.to_datetime(data['publishedAt'])
-    data['trending_time'] = data['trending_time'].dt.total_seconds()
 
     data['channel_subscribe_count'] = data['channel_subscribe_count'].fillna(data['channel_subscribe_count'].median())
     data['channel_view_count'] = data['channel_view_count'].fillna(data['channel_view_count'].median())
@@ -62,6 +64,7 @@ def preprocessing_data(data):
 
 def replace_outliers(data, columns_name):
     for column_name in columns_name:
+        median = data[column_name].median()
         q1 = data[column_name].quantile(0.25)
         q3 = data[column_name].quantile(0.75)
         iqr = q3 - q1
@@ -69,6 +72,8 @@ def replace_outliers(data, columns_name):
         upper_bound = q3 + (1.5 * iqr)
         data[column_name] = data[column_name].where(data[column_name] > lower_bound, lower_bound)
         data[column_name] = data[column_name].where(data[column_name] < upper_bound, upper_bound)
+        # data[column_name] = data[column_name].where(data[column_name] > lower_bound, median)
+        # data[column_name] = data[column_name].where(data[column_name] < upper_bound, median)
     return data
 
 
@@ -130,7 +135,6 @@ def convert_channel_id_to_channel_title(columns, channel_dictionary):
 
 
 def eda(df):
-    print(df['view_count'].value_counts())
     df['dislikes'].hist()
     plt.show()
     print(df.iloc[:, 0:17].describe())
@@ -180,9 +184,9 @@ def split_data(videos):
     # split the train/test split by the latest rating
 
     scaler = MinMaxScaler()
-    scaled_values = scaler.fit_transform(videos[['likes', 'dislikes', 'comment_count', 'trending_time',
+    scaled_values = scaler.fit_transform(videos[['likes', 'comment_count', 'trending_time',
                                                  'channel_subscribe_count', 'channel_view_count']])
-    videos[['likes', 'dislikes', 'comment_count', 'trending_time', 'channel_subscribe_count', 'channel_view_count']] \
+    videos[['likes', 'comment_count', 'trending_time', 'channel_subscribe_count', 'channel_view_count']] \
         = scaled_values
 
     train_videos = videos.sample(frac=0.8, random_state=200)
@@ -202,4 +206,4 @@ def split_input_output(train, test):
 
 
 #preprocessing_data(import_data())
-eda(preprocessing_data(import_data()))
+#eda(preprocessing_data(import_data()))

@@ -68,35 +68,29 @@ if __name__ == '__main__':
     padded_titles = pad_sequences(encoded_titles, maxlen=6, padding='post')
     encoded_description = [one_hot(d, num_words) for d in x_train['description'].astype(str)]
     padded_description = pad_sequences(encoded_description, maxlen=6, padding='post')
-    encoded_tags = [one_hot(d, num_words) for d in x_train['tags']]
-    padded_tags = pad_sequences(encoded_tags, maxlen=100, padding='post')
     title_data = padded_titles
     description_data = padded_description
-    tags_data = padded_tags
     numerical_data = x_train.iloc[:, np.r_[6:9, 13:15, 17:53]].to_numpy()
     # Dummy target data
     dept_targets = y_train
 
-    # model.fit(
-    #     {"title": title_data, "description": description_data,
-    #      "numerical_input": np.asarray(numerical_data).astype(np.float32)},
-    #     {"view_count": dept_targets},
-    #     epochs=15,
-    #     batch_size=32,
-    # )
-    #model.save('my_model')
+    model.fit(
+        {"title": title_data, "description": description_data,
+         "numerical_input": np.asarray(numerical_data).astype(np.float32)},
+        {"view_count": dept_targets},
+        epochs=15,
+        batch_size=32,
+    )
+    model.save('my_model_2')
 
-    model = keras.models.load_model("my_model")
+    #model = keras.models.load_model("my_model")
 
     encoded_titles = [one_hot(d, num_words) for d in x_test['title']]
     padded_titles = pad_sequences(encoded_titles, maxlen=6, padding='post')
     encoded_description = [one_hot(d, num_words) for d in x_test['description'].astype(str)]
     padded_description = pad_sequences(encoded_description, maxlen=6, padding='post')
-    encoded_tags = [one_hot(d, num_words) for d in x_test['tags']]
-    padded_tags = pad_sequences(encoded_tags, maxlen=100, padding='post')
     title_data = padded_titles
     description_data = padded_description
-    tags_data = padded_tags
     numerical_data = x_test.iloc[:, np.r_[6:9, 13:15, 17:53]].to_numpy()
 
     test_scores = model.evaluate([title_data, description_data, numerical_data], y_test, verbose=2)
