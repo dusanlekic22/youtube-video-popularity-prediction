@@ -25,8 +25,6 @@ def import_data():
 
     us_channel_info = pd.read_csv('../dataset/US_channel_about.csv', index_col=False)
     data = data.merge(us_channel_info, how='left', on='channelId')
-    data = pd.concat(map(pd.read_csv, ['dataset/GB_youtube_trending_data.csv',
-                                       'dataset/US_youtube_trending_data.csv']), ignore_index=True)
 
     # subset the data
     rand_video_ids = np.random.choice(data['video_id'].unique(),
@@ -146,5 +144,5 @@ def split_input_output(train, test):
     return x_train, y_train, x_test, y_test
 
 
-# preprocessing_data(import_data())
-# eda(preprocessing_data(import_data()))
+#preprocessing_data(import_data())
+eda(preprocessing_data(import_data()))
