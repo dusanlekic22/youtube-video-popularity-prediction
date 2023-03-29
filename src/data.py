@@ -7,8 +7,8 @@ from sklearn.preprocessing import OneHotEncoder
 
 def import_data():
     np.random.seed(123)
-    data = pd.concat(map(pd.read_csv, ['../dataset/GB_youtube_trending_data.csv',
-                                       '../dataset/US_youtube_trending_data.csv']), ignore_index=True)
+    data = pd.concat(map(pd.read_csv, ['dataset/GB_youtube_trending_data.csv',
+                                       'dataset/US_youtube_trending_data.csv']), ignore_index=True)
 
     # subset the data
     rand_video_ids = np.random.choice(data['video_id'].unique(),
@@ -21,7 +21,6 @@ def import_data():
     data['trending_time'] = pd.to_datetime(data['trending_date']) - pd.to_datetime(data[
         'publishedAt'])
     data['trending_time'] = data['trending_time'].dt.total_seconds()
-
     OH_encoder = OneHotEncoder(handle_unknown='ignore', sparse=False)
     OH_cols_train = pd.DataFrame(OH_encoder.fit_transform(data['categoryId'].values.reshape(-1, 1)))
     column_name = OH_encoder.get_feature_names_out(['category'])
@@ -83,3 +82,7 @@ def split_input_output(train, test):
 
     return x_train, y_train, x_test, y_test
 
+
+
+if __name__ == '__main__':
+    import_data()

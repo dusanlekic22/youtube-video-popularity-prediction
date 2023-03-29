@@ -48,8 +48,12 @@ def get_comments(video_id):
         time.sleep(0.5)
 
     # wait for comments to load
-    html_comment_section = wait.until(EC.presence_of_element_located((By.CLASS_NAME, "style-scope ytd-item-section-renderer")))
-    comment_renderer_tag = html_comment_section.find_elements_by_tag_name("ytd-comment-thread-renderer")
+    try:
+        html_comment_section = wait.until(EC.presence_of_element_located((By.CLASS_NAME, "style-scope ytd-item-section-renderer")))
+        comment_renderer_tag = html_comment_section.find_elements_by_tag_name("ytd-comment-thread-renderer")
+    except:
+        print("No comments found section")
+        return []
 
     target_num_of_comments = 50
     num_of_comments = 0
@@ -81,16 +85,16 @@ def save_to_csv(comments_list):
     if len(comments_list) == 0:
         return
     df = pd.DataFrame(comments_list, columns=['video_id', 'creator_heart', 'comment', 'date'])
-    df.to_csv('../dataset/US_comments.csv', mode='a', header=False)
+    df.to_csv('../dataset/US_comments1.csv', mode='a', header=False)
 
 
-def main():
+def main(start_from):
     video_ids = load_data('../dataset/US_youtube_trending_data.csv')
     print(len(video_ids))
-    exit()
+
     n = 0
     elapsed_time = 0
-    for video_id in video_ids:
+    for video_id in video_ids[start_from:]:
         n += 1
         print(video_id)
         start_time = time.time()
@@ -100,12 +104,9 @@ def main():
         elapsed_time += end_time - start_time
 
         print("---", n, "-------------------------------------------------", end_time - start_time, "seconds ---", elapsed_time, "seconds ---")
-        if n == 10:
-            break
-
 
 
 if __name__ == '__main__':
-    main()
+    main(174)
     driver.close()
 
