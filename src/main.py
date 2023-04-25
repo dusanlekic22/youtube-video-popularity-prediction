@@ -78,7 +78,7 @@ if __name__ == '__main__':
         {"title": title_data, "description": description_data,
          "numerical_input": np.asarray(numerical_data).astype(np.float32)},
         {"view_count": dept_targets},
-        epochs=15,
+        epochs=6,
         batch_size=32,
     )
     model.save('my_model_2')
