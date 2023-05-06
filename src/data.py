@@ -3,12 +3,15 @@ import json
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
+from nltk import WordNetLemmatizer
 from scipy import stats
 from sklearn.preprocessing import MinMaxScaler, MultiLabelBinarizer
 import seaborn as sb
 from sklearn.preprocessing import OneHotEncoder
-
-
+from nltk.corpus import stopwords
+import nltk
+nltk.download('stopwords')
+nltk.download('wordnet')
 def import_data():
     np.random.seed(123)
     us_data = pd.read_csv('../dataset/US_youtube_trending_data.csv', index_col=False)
@@ -22,11 +25,23 @@ def import_data():
     gb_data['categoryId'] = gb_data[['categoryId']].apply(convert_category_id_to_category, args=(gb_category_dict,),
                                                           axis=1)
 
-    data = pd.concat([us_data, gb_data])
+    #data = pd.concat([us_data, gb_data])
     data = us_data
     us_channel_info = pd.read_csv('../dataset/US_channel_about.csv', index_col=False)
     data = data.merge(us_channel_info, how='left', on='channelId')
+    data = data.drop(['channelId', 'channelTitle', 'thumbnail_link', 'comments_disabled', 'ratings_disabled',
+                      'channel_join_date', 'scraping_time'], axis=1)
+    us_textblob_sentiment = pd.read_csv('../dataset/US_comments_analysis_textblob.csv', index_col=False)
+    #set number of positive, negative and neutral comments to a percentage of total number of comments
+    #us_textblob_sentiment['number_of_positive_comments'] = us_textblob_sentiment['number_of_positive_comments'] / us_textblob_sentiment['number_of_comments']
+    #us_textblob_sentiment['number_of_negative_comments'] = us_textblob_sentiment['number_of_negative_comments'] / us_textblob_sentiment['number_of_comments']
+    #us_textblob_sentiment['number_of_neutral_comments'] = us_textblob_sentiment['number_of_neutral_comments'] / us_textblob_sentiment['number_of_comments']
 
+    #drop id and number of comments columns
+    us_textblob_sentiment = us_textblob_sentiment.drop(['id', 'number_of_comments'], axis=1)
+
+    # merge the sentiment data
+    data = data.merge(us_textblob_sentiment, how='left', on='video_id')
     # subset the data
     rand_video_ids = np.random.choice(data['video_id'].unique(),
                                       size=int(len(data['video_id'].unique()) * 1.0),
@@ -41,8 +56,17 @@ def preprocessing_data(data):
 
     data['trending_time'] = pd.to_datetime(data['trending_date']) - pd.to_datetime(data['publishedAt'])
     data['trending_time'] = data['trending_time'].dt.total_seconds()
-
-    print(data['dislikes'].value_counts())
+    #drop trending date and published at columns
+    data = data.drop(['trending_date', 'publishedAt', 'video_id'], axis=1)
+    #create like, dislike an
+    # replace the likes column with the like to view ratio
+    # data['like_ratio'] = data['likes'] / data['view_count']
+    # # replace the dislikes column with the dislike to view ratio
+    # #data['dislike_ratio'] = data['dislikes'] / data['view_count']
+    # # replace the comment count column with the comment count to view ratio
+    # data['comment_count_ratio'] = data['comment_count'] / data['view_count']
+    # replace infinity values with 0
+    #data = data.replace([np.inf, -np.inf], 0)
 
     data = replace_outliers(data, ['likes', 'dislikes', 'comment_count',
                                    'channel_subscribe_count', 'channel_view_count', 'trending_time'])
@@ -51,16 +75,52 @@ def preprocessing_data(data):
     data['channel_subscribe_count'] = data['channel_subscribe_count'].fillna(data['channel_subscribe_count'].median())
     data['channel_view_count'] = data['channel_view_count'].fillna(data['channel_view_count'].median())
 
+    #filling missing values with median for number of negative, neutral and positive comments
+    data['number_of_negative_comments'] = data['number_of_negative_comments'].fillna(data['number_of_negative_comments'].median())
+    data['number_of_neutral_comments'] = data['number_of_neutral_comments'].fillna(data['number_of_neutral_comments'].median())
+    data['number_of_positive_comments'] = data['number_of_positive_comments'].fillna(data['number_of_positive_comments'].median())
+
     data = category_encoding(data)
     data = split_tags(data)
+    #print column names and their index
+    # for i, col in enumerate(data.columns):
+    #     print(i, col)
 
-    # replace view count column with 0 where view count is less than 400000 and 1 where view count is greater than 400000
 
-    data['view_count'] = data['view_count'].where(data['view_count'] < 500000, 1)
-    data['view_count'] = data['view_count'].where(data['view_count'] == 1, 0)
+    # split the view count column into 3 balanced integer categories
+    data['view_count'] = pd.qcut(data['view_count'], 2, labels=[0, 1])
+
+
+    #print how many values are in view count column
+    print(data['view_count'].value_counts())
+
+    scaler = MinMaxScaler()
+    scaled_values = scaler.fit_transform(data[['likes', 'dislikes', 'comment_count', 'trending_time',
+                                                 'channel_subscribe_count', 'channel_view_count',
+                                                 'number_of_positive_comments', 'number_of_negative_comments',
+                                                 'number_of_neutral_comments', 'view_count']])
+    data[['likes', 'dislikes', 'comment_count', 'trending_time', 'channel_subscribe_count', 'channel_view_count',
+            'number_of_positive_comments', 'number_of_negative_comments', 'number_of_neutral_comments', 'view_count']] \
+        = scaled_values
+
+    data = remove_stop_words(data)
+    data = lemmatize_words(data)
 
     return data
 
+def remove_stop_words(data):
+    stop_words = set(stopwords.words('english'))
+    #print data description type
+    # print(type(data['description']))
+    data['title'] = data['title'].apply(lambda x: ' '.join([word for word in x.split() if word not in (stop_words)]))
+    data['description'] = data['description'].apply(lambda x: ' '.join([word for word in str(x).split() if word not in (stop_words)]))
+    return data
+
+def lemmatize_words(data):
+    lemmatizer = WordNetLemmatizer()
+    data['title'] = data['title'].apply(lambda x: ' '.join([lemmatizer.lemmatize(word) for word in x.split()]))
+    data['description'] = data['description'].apply(lambda x: ' '.join([lemmatizer.lemmatize(word) for word in x.split()]))
+    return data
 
 def replace_outliers(data, columns_name):
     for column_name in columns_name:
@@ -182,12 +242,6 @@ def split_tags(df):
 
 def split_data(videos):
     # split the train/test split by the latest rating
-
-    scaler = MinMaxScaler()
-    scaled_values = scaler.fit_transform(videos[['likes', 'comment_count', 'trending_time',
-                                                 'channel_subscribe_count', 'channel_view_count']])
-    videos[['likes', 'comment_count', 'trending_time', 'channel_subscribe_count', 'channel_view_count']] \
-        = scaled_values
 
     train_videos = videos.sample(frac=0.8, random_state=200)
     test_videos = videos.drop(train_videos.index)
