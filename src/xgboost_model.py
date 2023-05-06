@@ -11,8 +11,8 @@ if __name__ == '__main__':
     print(x_train.columns)
     dtrain = xgb.DMatrix(x_train, label=y_train)
 
-    param = {'max_depth': 15, 'eta': 0.3, 'objective': 'multi:softmax', 'nthread': 4,
-             'eval_metric': ['auc', 'mae', 'rmsle'], 'num_class': 3}
+    param = {'max_depth': 6, 'eta': 0.3, 'objective': 'binary:logistic', 'nthread': 4,
+             'eval_metric': ['auc', 'mae', 'rmsle']}
 
     dtest = xgb.DMatrix(x_test, label=y_test)
     evallist = [(dtrain, 'train'), (dtest, 'eval')]

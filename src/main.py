@@ -59,8 +59,8 @@ if __name__ == '__main__':
             keras.losses.BinaryCrossentropy(from_logits=True),
             keras.losses.CategoricalCrossentropy(from_logits=True),
         ],
-        loss_weights=[1.0, 0.2],
-        metrics=[keras.metrics.SparseCategoricalAccuracy(), 'AUC', 'accuracy'],
+        loss_weights=[2.0, 0.2],
+        metrics=['mean_absolute_error', 'AUC', 'accuracy'],
     )
 
     # Embedding the inputs
