@@ -15,17 +15,11 @@ nltk.download('wordnet')
 def import_data():
     np.random.seed(123)
     us_data = pd.read_csv('../dataset/US_youtube_trending_data.csv', index_col=False)
-    gb_data = pd.read_csv('../dataset/GB_youtube_trending_data.csv', index_col=False)
 
     us_category_dict = category_id_to_category('../dataset/US_category_id.json')
     us_data['categoryId'] = us_data[['categoryId']].apply(convert_category_id_to_category, args=(us_category_dict,),
                                                           axis=1)
 
-    gb_category_dict = category_id_to_category('../dataset/GB_category_id.json')
-    gb_data['categoryId'] = gb_data[['categoryId']].apply(convert_category_id_to_category, args=(gb_category_dict,),
-                                                          axis=1)
-
-    #data = pd.concat([us_data, gb_data])
     data = us_data
     us_channel_info = pd.read_csv('../dataset/US_channel_about.csv', index_col=False)
     data = data.merge(us_channel_info, how='left', on='channelId')
@@ -242,9 +236,11 @@ def split_tags(df):
 
 def split_data(videos):
     # split the train/test split by the latest rating
-
-    train_videos = videos.sample(frac=0.8, random_state=200)
-    test_videos = videos.drop(train_videos.index)
+    vid = videos.drop(['number_of_positive_comments',
+                        'number_of_negative_comments',
+                        'number_of_neutral_comments'], axis=1)
+    train_videos = vid.sample(frac=0.8, random_state=200)
+    test_videos = vid.drop(train_videos.index)
 
     return train_videos, test_videos
 
