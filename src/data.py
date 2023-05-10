@@ -25,14 +25,14 @@ def import_data():
     data = data.merge(us_channel_info, how='left', on='channelId')
     data = data.drop(['channelId', 'channelTitle', 'thumbnail_link', 'comments_disabled', 'ratings_disabled',
                       'channel_join_date', 'scraping_time'], axis=1)
-    us_textblob_sentiment = pd.read_csv('../dataset/US_comments_analysis_textblob.csv', index_col=False)
+    us_vader_sentiment = pd.read_csv('../dataset/US_comments_analysis_vader_full.csv', index_col=False)
     #set number of positive, negative and neutral comments to a percentage of total number of comments
     #us_textblob_sentiment['number_of_positive_comments'] = us_textblob_sentiment['number_of_positive_comments'] / us_textblob_sentiment['number_of_comments']
     #us_textblob_sentiment['number_of_negative_comments'] = us_textblob_sentiment['number_of_negative_comments'] / us_textblob_sentiment['number_of_comments']
     #us_textblob_sentiment['number_of_neutral_comments'] = us_textblob_sentiment['number_of_neutral_comments'] / us_textblob_sentiment['number_of_comments']
 
     #drop id and number of comments columns
-    us_textblob_sentiment = us_textblob_sentiment.drop(['id', 'number_of_comments'], axis=1)
+    us_textblob_sentiment = us_vader_sentiment.drop(['number_of_comments'], axis=1)
 
     # merge the sentiment data
     data = data.merge(us_textblob_sentiment, how='left', on='video_id')
@@ -75,7 +75,8 @@ def preprocessing_data(data):
     data['number_of_positive_comments'] = data['number_of_positive_comments'].fillna(data['number_of_positive_comments'].median())
 
     data = category_encoding(data)
-    data = split_tags(data)
+    #data = split_tags(data)
+
     #print column names and their index
     # for i, col in enumerate(data.columns):
     #     print(i, col)
@@ -97,8 +98,22 @@ def preprocessing_data(data):
             'number_of_positive_comments', 'number_of_negative_comments', 'number_of_neutral_comments', 'view_count']] \
         = scaled_values
 
+    #drop number of positive, negative and neutral comments columns
+
     data = remove_stop_words(data)
     data = lemmatize_words(data)
+    #remove '|' from title and description
+    data['title'] = data['title'].str.replace('|', '')
+    data['description'] = data['description'].str.replace('|', '')
+    data['tags'] = data['tags'].str.replace('|', '')
+    #remove '-' from title and description
+    data['title'] = data['title'].str.replace('-', '')
+    data['description'] = data['description'].str.replace('-', '')
+    data['tags'] = data['tags'].str.replace('-', '')
+    #set to lower case
+    data['title'] = data['title'].str.lower()
+    data['description'] = data['description'].str.lower()
+    data['tags'] = data['tags'].str.lower()
 
     return data
 
@@ -236,11 +251,11 @@ def split_tags(df):
 
 def split_data(videos):
     # split the train/test split by the latest rating
-    vid = videos.drop(['number_of_positive_comments',
-                        'number_of_negative_comments',
-                        'number_of_neutral_comments'], axis=1)
-    train_videos = vid.sample(frac=0.8, random_state=200)
-    test_videos = vid.drop(train_videos.index)
+    #drop positive,negative, neutral number of comments
+    #videos = videos.drop(['number_of_positive_comments', 'number_of_negative_comments', 'number_of_neutral_comments'], axis=1)\
+
+    train_videos = videos.sample(frac=0.8, random_state=200)
+    test_videos = videos.drop(train_videos.index)
 
     return train_videos, test_videos
 
@@ -254,6 +269,4 @@ def split_input_output(train, test):
 
     return x_train, y_train, x_test, y_test
 
-
-#preprocessing_data(import_data())
 #eda(preprocessing_data(import_data()))

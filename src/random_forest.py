@@ -1,3 +1,4 @@
+from sklearn import metrics
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix, precision_score, recall_score, ConfusionMatrixDisplay, \
     roc_auc_score, mean_absolute_error, mean_squared_log_error
@@ -6,7 +7,7 @@ from scipy.stats import randint
 from data import *
 
 if __name__ == '__main__':
-    train, test = split_data(preprocessing_data(import_data()).drop(['title', 'description'], axis=1))
+    train, test = split_data(preprocessing_data(import_data()).drop(['title', 'description', 'tags'], axis=1))
     x_train, y_train, x_test, y_test = split_input_output(train, test)
     rf = RandomForestClassifier(n_estimators=415, max_depth=17, random_state=0)
     rf.fit(x_train, y_train)
@@ -16,7 +17,8 @@ if __name__ == '__main__':
     print("Accuracy:", accuracy)
     print("ROC:", auc_roc)
     print("MAE:", mean_absolute_error(y_test, y_pred))
-    print("MSLE:", mean_squared_log_error(y_test, y_pred))
+    # print f1 score
+    print("F1:", metrics.f1_score(y_test, y_pred))
     #plot confusion matrix
     cm = confusion_matrix(y_test, y_pred)
     ConfusionMatrixDisplay(cm).plot()

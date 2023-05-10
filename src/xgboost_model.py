@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import xgboost as xgb
-from sklearn.metrics import f1_score, accuracy_score, roc_auc_score
+from sklearn.metrics import f1_score, accuracy_score, roc_auc_score, mean_absolute_error
 from sklearn.model_selection import RandomizedSearchCV, KFold
 from xgboost import XGBClassifier
 
@@ -8,7 +8,7 @@ from data import *
 
 if __name__ == '__main__':
 
-    train, test = split_data(preprocessing_data(import_data()).drop(['title', 'description'], axis=1))
+    train, test = split_data(preprocessing_data(import_data()).drop(['title', 'description', 'tags'], axis=1))
     x_train, y_train, x_test, y_test = split_input_output(train, test)
 
     # Print the value which is in x_train.iloc[:, np.r_[7:10, 18:33]].columns but not in x_train.columns
@@ -18,8 +18,8 @@ if __name__ == '__main__':
 
     param = {'objective': 'binary:logistic', 'nthread': 4,
              'eval_metric': ['auc', 'mae', 'rmsle'],
-             'colsample_bytree': 0.9299010309585984, 'learning_rate': 0.036070797323232075, 'max_depth': 13,
-             'min_child_weight': 2, 'n_estimators': 314, 'subsample': 0.7154189132932087}
+             'colsample_bytree': 0.7872015451502918, 'learning_rate': 0.032176699545146153, 'max_depth': 14,
+             'min_child_weight': 2, 'n_estimators': 297, 'subsample': 0.8259211487351279}
 
     dtest = xgb.DMatrix(x_test, label=y_test)
     evallist = [(dtrain, 'train'), (dtest, 'eval')]
@@ -38,8 +38,8 @@ if __name__ == '__main__':
     # bst.load_model('0001.model')  # load data
     print("Accuracy: %.2f%%" % (accuracy * 100.0))
     print("ROC: %.2f%%" % (auc_roc * 100.0))
+    print("MAE:", mean_absolute_error(y_test, y_pred))
     print("F1: %.2f%%" % (f1 * 100.0))
-    print("Micro F1: %.2f%%" % (micro_f1 * 100.0))
     xgb.plot_importance(bst)
     plt.show()
     # param_dist = {'n_estimators': stats.randint(150, 500),
@@ -55,7 +55,7 @@ if __name__ == '__main__':
     #                          n_jobs=-1)
     # numFolds = 5
     # folds = KFold(n_splits=numFolds, shuffle=True)
-    # X = preprocessing_data(import_data()).drop(['title', 'description', 'view_count'], axis=1)
+    # X = preprocessing_data(import_data()).drop(['title', 'description', 'view_count','tags'], axis=1)
     # y = preprocessing_data(import_data())['view_count']
     # estimators = []
     # results = np.zeros(len(X))

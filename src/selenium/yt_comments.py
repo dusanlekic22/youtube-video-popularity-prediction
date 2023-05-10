@@ -42,7 +42,10 @@ def get_comments(video_id):
     driver.get('https://www.youtube.com/watch?v=' + video_id)
     driver.maximize_window()
 
+    time.sleep(0.5)
     html = driver.find_element(By.TAG_NAME, 'html')
+    driver.execute_script("window.scrollTo(0, 500)")
+    time.sleep(0.5)
     for i in range(10):
         html.send_keys(Keys.END)
         time.sleep(0.5)
@@ -85,11 +88,11 @@ def save_to_csv(comments_list):
     if len(comments_list) == 0:
         return
     df = pd.DataFrame(comments_list, columns=['video_id', 'creator_heart', 'comment', 'date'])
-    df.to_csv('../dataset/US_comments1.csv', mode='a', header=False)
+    df.to_csv('../../dataset/US_comments2.csv', mode='a', header=False)
 
 
 def main(start_from):
-    video_ids = load_data('../dataset/US_youtube_trending_data.csv')
+    video_ids = load_data('../../dataset/US_youtube_trending_data.csv')
     print(len(video_ids))
 
     n = 0
@@ -107,6 +110,6 @@ def main(start_from):
 
 
 if __name__ == '__main__':
-    main(174)
+    main(33202)
     driver.close()
 
