@@ -1,7 +1,9 @@
 import json
-
+import os , os.path, shutil
+import tensorflow as tf
 import pandas as pd
 import numpy as np
+from keras.utils import image_dataset_from_directory
 from matplotlib import pyplot as plt
 from nltk import WordNetLemmatizer
 from scipy import stats
@@ -10,8 +12,10 @@ import seaborn as sb
 from sklearn.preprocessing import OneHotEncoder
 from nltk.corpus import stopwords
 import nltk
-nltk.download('stopwords')
-nltk.download('wordnet')
+import cv2
+#nltk.download('stopwords')
+#nltk.download('wordnet')
+
 def import_data():
     np.random.seed(123)
     us_data = pd.read_csv('../dataset/US_youtube_trending_data.csv', index_col=False)
@@ -45,13 +49,62 @@ def import_data():
     return data
 
 
+def load_images(data):
+    input_images = []
+    # loop over the input house paths
+    for id in data['video_id']:
+        # load the input image, resize it to be 32 32, and then
+        # update the list of input images
+        image_path = '../dataset/video_thumbnails_2/' + id + '.jpg'
+        image = cv2.imread(image_path)
+        # check if image size is 0
+        if image.shape[0] == 90 and image.shape[1] == 120:
+            #rotate image
+            image = cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE)
+        input_images.append(image)
+
+    return np.asarray(input_images)
+
+
+def import_thumbnails():
+    # Path to directory containing train and test splits
+    train_directory = '../dataset/video_thumbnails/train'
+    test_directory = '../dataset/video_thumbnails/test'
+
+    # Define parameters for loading the dataset
+    image_size = (224, 224)  # Size of the images
+    batch_size = 32  # Number of images per batch
+
+    # Load train dataset
+    train_dataset = image_dataset_from_directory(
+        train_directory,
+        image_size=image_size,
+        batch_size=batch_size,
+        label_mode='categorical'  # Adjust this based on your label format
+    )
+
+    # Load test dataset
+    test_dataset = image_dataset_from_directory(
+        test_directory,
+        image_size=image_size,
+        batch_size=batch_size,
+        label_mode='categorical'  # Adjust this based on your label format
+    )
+
+    # # Convert train dataset to tf.data.Dataset
+    # train_dataset = train_dataset.as_dataset()
+    #
+    # # Convert test dataset to tf.data.Dataset
+    # test_dataset = test_dataset.as_dataset()
+    return train_dataset, test_dataset
+
+
 def preprocessing_data(data):
     data = data.drop_duplicates(subset='video_id', keep="first")
-
     data['trending_time'] = pd.to_datetime(data['trending_date']) - pd.to_datetime(data['publishedAt'])
     data['trending_time'] = data['trending_time'].dt.total_seconds()
     #drop trending date and published at columns
-    data = data.drop(['trending_date', 'publishedAt', 'video_id'], axis=1)
+    data = data.drop(['trending_date', 'publishedAt'], axis=1)
     #create like, dislike an
     # replace the likes column with the like to view ratio
     # data['like_ratio'] = data['likes'] / data['view_count']
@@ -117,6 +170,7 @@ def preprocessing_data(data):
 
     return data
 
+
 def remove_stop_words(data):
     stop_words = set(stopwords.words('english'))
     #print data description type
@@ -125,11 +179,13 @@ def remove_stop_words(data):
     data['description'] = data['description'].apply(lambda x: ' '.join([word for word in str(x).split() if word not in (stop_words)]))
     return data
 
+
 def lemmatize_words(data):
     lemmatizer = WordNetLemmatizer()
     data['title'] = data['title'].apply(lambda x: ' '.join([lemmatizer.lemmatize(word) for word in x.split()]))
     data['description'] = data['description'].apply(lambda x: ' '.join([lemmatizer.lemmatize(word) for word in x.split()]))
     return data
+
 
 def replace_outliers(data, columns_name):
     for column_name in columns_name:
@@ -249,6 +305,7 @@ def split_tags(df):
 
     return df
 
+
 def split_data(videos):
     # split the train/test split by the latest rating
     #drop positive,negative, neutral number of comments
@@ -263,10 +320,76 @@ def split_data(videos):
 def split_input_output(train, test):
     x_train = train.drop(['view_count'], axis=1)
     y_train = train[['view_count']]
+    #
+    # get train video ids where view count is 1
+    # train_images = train[train['view_count'] == 1]['video_id']
+    # # train_images = x_train['video_id']
+    # # print(os.listdir())
+    # for image in train_images:
+    #     folder_name = '1'
+    #     new_path = folder_path + '/' + folder_name
+    #     if not os.path.exists(new_path):
+    #         os.makedirs(new_path)
+    #     old_image_path = folder_path + '/' + image + '.jpg'
+    #     new_image_path = new_path + '/' + image + '.jpg'
+    #     shutil.move(old_image_path, new_image_path)
+    #
+    # train_images = train[train['view_count'] == 0]['video_id']
+    # # train_images = x_train['video_id']
+    # # print(os.listdir())
+    # for image in train_images:
+    #     folder_name = '0'
+    #     new_path = folder_path + '/' + folder_name
+    #     if not os.path.exists(new_path):
+    #         os.makedirs(new_path)
+    #     old_image_path = folder_path + '/' + image + '.jpg'
+    #     new_image_path = new_path + '/' + image + '.jpg'
+    #     shutil.move(old_image_path, new_image_path)
 
     x_test = test.drop(['view_count'], axis=1)
     y_test = test[['view_count']]
 
+    # get test video ids where view count is 1
+    # test_images = test[test['view_count'] == 1]['video_id']
+    # for image in test_images:
+    #     folder_name = '1'
+    #     new_path = folder_path + '/' + folder_name
+    #     if not os.path.exists(new_path):
+    #         os.makedirs(new_path)
+    #     old_image_path = folder_path + '/' + image + '.jpg'
+    #     new_image_path = new_path + '/' + image + '.jpg'
+    #     shutil.move(old_image_path, new_image_path)
+    #
+    # test_images = test[test['view_count'] == 0]['video_id']
+    # for image in test_images:
+    #     folder_name = '0'
+    #     new_path = folder_path + '/' + folder_name
+    #     if not os.path.exists(new_path):
+    #         os.makedirs(new_path)
+    #     old_image_path = folder_path + '/' + image + '.jpg'
+    #     new_image_path = new_path + '/' + image + '.jpg'
+    #     shutil.move(old_image_path, new_image_path)
+
+    # test_images = x_test['video_id']
+    #
+    # for image in test_images:
+    #     folder_name = 'test'
+    #     new_path = folder_path + '/' + folder_name
+    #     if not os.path.exists(new_path):
+    #         os.makedirs(new_path)
+    #     old_image_path = folder_path + '/' + image + '.jpg'
+    #     new_image_path = new_path + '/' + image + '.jpg'
+    #     shutil.move(old_image_path, new_image_path)
+
     return x_train, y_train, x_test, y_test
+
+
+def fill_missing_thumbnails(data):
+    folder_path = '../dataset/video_thumbnails'
+    for id in data['video_id']:
+        if not os.path.exists(folder_path + '/' + id + '.jpg'):
+            # generate a random image
+            img = np.random.randint(255, size=(120, 90, 3), dtype=np.uint8)
+            cv2.imwrite(folder_path + '/' + id + '.jpg', img)
 
 #eda(preprocessing_data(import_data()))
